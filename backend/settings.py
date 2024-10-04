@@ -197,7 +197,8 @@ ADMIN_CHARTS_USE_JSONFIELD = False
 
 
 # Celery settings
-CELERY_BROKER_URL = "amqp://guest:guest@localhost:5672//"  # Use RabbitMQ as the broker
+CELERY_BROKER_URL = 'amqp://guest:guest@147.79.102.115:5672//'
+#CELERY_BROKER_URL = "amqp://guest:guest@localhost:5672//"  # Use RabbitMQ as the broker
 CELERY_RESULT_BACKEND = "rpc://"  # Use RabbitMQ to return task results
 CELERY_ACCEPT_CONTENT = ["json"]
 CELERY_TASK_SERIALIZER = "json"
