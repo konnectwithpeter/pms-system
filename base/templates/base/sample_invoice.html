@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Water & Rent Invoice</title>
+    <style>
+      /* General Styles */
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+        border: none !important;
+        box-shadow: none; /* Removed box shadow */
+      }
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background-color: #f5f7fa;
+        margin: 0;
+        padding: 0;
+      }
+
+      .invoice-box {
+        max-width: 800px;
+        margin: 20px auto;
+        padding: 5px;
+        background-color: #fff;
+
+        border-radius: 10px;
+        border: 1px solid #e0e0e0;
+      }
+
+      .invoice-header {
+        text-align: center;
+        margin-bottom: 5px;
+        box-shadow: none;
+      }
+
+      h1,
+      h2 {
+        font-weight: 600;
+        margin: 0;
+      }
+
+      h1 {
+        font-size: 20px; /* Reduced font size */
+      }
+
+      h2 {
+        font-size: 16px; /* Reduced font size */
+      }
+
+      p {
+        font-size: 12px; /* Reduced font size */
+        margin: 3px 0; /* Reduced margin */
+      }
+
+      /* Table Styling */
+      .invoice-box table {
+        width: 100%;
+        line-height: 20px; /* Reduced line height */
+        border-collapse: collapse;
+        font-size: 12px; /* Reduced font size */
+        border: 1px solid ghostwhite !important;
+      }
+
+      .invoice-box table td {
+        padding: 3px; /* Reduced padding */
+        vertical-align: top;
+      }
+
+      .heading td {
+        background-color: #f1f1f1;
+        border-bottom: 1px solid #ddd;
+        font-weight: bold;
+        color: #4a4a4a;
+      }
+
+      .item td {
+        border-bottom: 1px solid #f1f1f1;
+      }
+
+      .item:last-child td {
+        border-bottom: none;
+      }
+
+      .total-row td {
+        font-weight: bold;
+        font-size: 14px; /* Reduced font size */
+        color: #333;
+        padding-top: 15px; /* Reduced padding */
+      }
+
+      .section-title {
+        font-size: 14px; /* Reduced font size */
+        font-weight: 600;
+        color: #333;
+        margin-top: 15px; /* Reduced margin */
+        border-bottom: 2px solid #4a90e2;
+        padding-bottom: 5px; /* Reduced padding */
+        text-transform: uppercase;
+      }
+
+      /* Notes and footer */
+      .invoice-notes {
+        margin-top: 10px;
+        font-size: 10px; /* Reduced font size */
+        color: #777;
+        line-height: 1.5;
+      }
+
+      .invoice-notes p {
+        margin: 1px 0;
+      }
+
+      .notes-title {
+        font-weight: bold;
+        color: #4a90e2;
+      }
+
+      /* Footer */
+      .invoice-footer {
+        text-align: center;
+        margin-top: 10px;
+        color: #aaa;
+        font-size: 10px; /* Reduced font size */
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="invoice-box">
+      <div class="invoice-header">
+        <h1>Kitisuru Spur Apartments</h1>
+        <p>P. O. Box 19061-00100, Nairobi, Kenya</p>
+        <p>+254 59 101 081 | info@herihomes.co.ke</p>
+      </div>
+
+      <h2>INVOICE</h2>
+
+      <table style="border: none !important">
+        <tr>
+          <td style="text-align: left">House No: {{house}}</td>
+          <td style="text-align: right">Invoice Date: {{invoice_date}}</td>
+        </tr>
+        <tr>
+          <td style="text-align: left">
+            Property Title No. KABETE/KIBICHIKO/3807- KIAMBU, KENYA
+          </td>
+          <td style="text-align: right">Due Date: {{due_date}}</td>
+        </tr>
+      </table>
+
+      <!-- Water Bill Section -->
+      <div class="section-title">Water Bill - {{invoice_month_year}}</div>
+      <table>
+        <tr class="heading">
+          <td style="text-align: left">Details</td>
+          <td style="text-align: right">Amount (KES)</td>
+        </tr>
+        <tr class="item">
+          <td style="text-align: left">
+            Previous Reading: {{previous_reading}}
+          </td>
+          <td style="text-align: right">__</td>
+        </tr>
+        <tr class="item">
+          <td style="text-align: left">Current Reading: {{current_reading}}</td>
+          <td style="text-align: right">__</td>
+        </tr>
+        <tr class="item">
+          <td style="text-align: left">
+            Consumption: ({{consumption}} x {{price_per_unit}})
+          </td>
+          <td style="text-align: right">{{water_bill}}</td>
+        </tr>
+      </table>
+
+      <!-- Monthly Rent Section -->
+      <div class="section-title">Monthly Rent</div>
+      <table>
+        <tr class="heading">
+          <td style="text-align: left">Details</td>
+          <td style="text-align: right">Amount (KES)</td>
+        </tr>
+        <tr class="item">
+          <td style="text-align: left">Monthly Rent</td>
+          <td style="text-align: right">{{monthly_rent}}</td>
+        </tr>
+      </table>
+
+      <!-- Arrears Section -->
+      <div class="section-title">Arrears</div>
+      <table>
+        <tr class="heading">
+          <td style="text-align: left">Details</td>
+          <td style="text-align: right">Amount (KES)</td>
+        </tr>
+        <tr class="item">
+          <td style="text-align: left">Arrears from Previous Months</td>
+          <td style="text-align: right">{{arrears}}</td>
+        </tr>
+      </table>
+
+      <!-- Total Calculation -->
+      <table>
+        <tr class="total-row">
+          <td style="text-align: left">
+            <strong>Total (Water Bill, Rent, Arrears)</strong>
+          </td>
+          <td style="text-align: right">
+            <strong>KES {{total_amount}}</strong>
+          </td>
+        </tr>
+      </table>
+
+      <div class="invoice-footer">
+        <p>Thank you for your prompt payment!</p>
+      </div>
+    </div>
+  </body>
+</html>

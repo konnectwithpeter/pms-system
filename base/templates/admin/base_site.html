@@ -1,0 +1,29 @@
+{% extends "admin/base_site.html" %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-md-4 mb-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Model 1</h5>
+                    <p class="card-text">Manage Model 1 entries.</p>
+                    <a href="{% url 'admin:base_model1_changelist' %}" class="btn btn-primary">View Model 1</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4 mb-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Model 2</h5>
+                    <p class="card-text">Manage Model 2 entries.</p>
+                    <a href="{% url 'admin:base_model2_changelist' %}" class="btn btn-primary">View Model 2</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Add more cards for other models -->
+    </div>
+</div>
+{% endblock %}
