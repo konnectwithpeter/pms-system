@@ -324,11 +324,11 @@ JAZZMIN_SETTINGS = {
     ###############
     # Change view #
     ###############
-    "changeform_format": "vertical_tabs",
+    "changeform_format": "horizontal_tabs",
     # override change forms on a per modeladmin basis
     "changeform_format_overrides": {
         "auth.user": "collapsible",
-        "auth.group": "vertical_tabs",
+        "auth.group": "horizontal_tabs",
     },
 }
 JAZZMIN_UI_TWEAKS = {
