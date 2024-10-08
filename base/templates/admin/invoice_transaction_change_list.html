@@ -1,0 +1,53 @@
+{% extends "admin/base_site.html" %}
+
+{% block content %}
+<h1>Invoices and Transactions</h1>
+
+<h2>Rent Invoices</h2>
+<table>
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Recipient</th>
+            <th>Amount</th>
+            <th>Issued Date</th>
+            <th>Status</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for invoice in rent_invoices %}
+        <tr>
+            <td>{{ invoice.id }}</td>
+            <td>{{ invoice.recipient }}</td>
+            <td>{{ invoice.total_amount }}</td>
+            <td>{{ invoice.created_at }}</td>
+            <td>{% if invoice.paid %}Paid{% else %}Pending{% endif %}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<h2>Water Bill Invoices</h2>
+<table>
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Recipient</th>
+            <th>Amount</th>
+            <th>Issued Date</th>
+            <th>Status</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for bill in water_bills %}
+        <tr>
+            <td>{{ bill.id }}</td>
+            <td>{{ bill.recipient }}</td>
+            <td>{{ bill.total_amount }}</td>
+            <td>{{ bill.created_at }}</td>
+            <td>{% if bill.paid %}Paid{% else %}Pending{% endif %}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

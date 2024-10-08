@@ -1,8 +1,8 @@
 from celery import Celery
 from celery.schedules import crontab
 
-app = Celery("backend", broker="amqp://guest:guest@147.79.102.115:5672//")
-#app = Celery("backend", broker="amqp://guest:guest@rabbitmq//")
+#app = Celery("backend", broker="amqp://guest:guest@147.79.102.115:5672//")
+app = Celery("backend", broker="amqp://guest:guest@rabbitmq//")
 
 app.conf.result_backend = "rpc://"
 

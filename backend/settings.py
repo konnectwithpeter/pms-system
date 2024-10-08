@@ -23,9 +23,16 @@ ALLOWED_HOSTS = ["*"]
 # Application definition
 
 INSTALLED_APPS = [
-    # "admin_tools_stats",  # this must be BEFORE 'admin_tools' and 'django.contrib.admin'
-    # "django_nvd3",
-    "jazzmin",
+    "unfold",  # before django.contrib.admin
+   
+    "unfold.contrib.filters",  # optional, if special filters are needed
+    "unfold.contrib.forms",  # optional, if special form elements are needed
+    "unfold.contrib.inlines",  # optional, if special inlines are needed
+    "unfold.contrib.import_export",  # optional, if django-import-export package is used
+    "unfold.contrib.guardian",  # optional, if django-guardian package is used
+    "unfold.contrib.simple_history",  # optional, if django-simple-history package is used
+    #'grappelli',
+    # "jazzmin",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -109,6 +116,7 @@ TEMPLATES = [
     },
 ]
 
+
 WSGI_APPLICATION = "backend.wsgi.application"
 
 
@@ -158,7 +166,7 @@ CORS_ORIGIN_ALLOW_ALL = True
 
 CSRF_TRUSTED_ORIGINS = [
     "http://localhost:5173",
-    "https://rowg.co.ke/",  
+    "https://rowg.co.ke/",
     "https://deansmgmt.com",
 ]
 
@@ -197,8 +205,8 @@ ADMIN_CHARTS_USE_JSONFIELD = False
 
 
 # Celery settings
-CELERY_BROKER_URL = 'amqp://guest:guest@147.79.102.115:5672//'
-#CELERY_BROKER_URL = "amqp://guest:guest@localhost:5672//"  # Use RabbitMQ as the broker
+# CELERY_BROKER_URL = 'amqp://guest:guest@147.79.102.115:5672//'
+CELERY_BROKER_URL = "amqp://guest:guest@localhost:5672//"  # Use RabbitMQ as the broker
 CELERY_RESULT_BACKEND = "rpc://"  # Use RabbitMQ to return task results
 CELERY_ACCEPT_CONTENT = ["json"]
 CELERY_TASK_SERIALIZER = "json"
@@ -259,108 +267,12 @@ MPESA_INITIATOR_USERNAME = "testapi"
 MPESA_INITIATOR_SECURITY_CREDENTIAL = "Safaricom999!*!"
 
 
-JAZZMIN_SETTINGS = {
-    "site_title": "Heri Homes",
-    "site_header": "Heri Homes Admin",
-    "site_brand": "Heri Homes",
-    "site_icon": None,
-    # Add your own branding here
-    "site_logo": None,
-    "welcome_sign": "Welcome to Heri Homes",
-    # Copyright on the footer
-    "copyright": "Heri Homes",
-    "user_avatar": None,
-    ############
-    # Top Menu #
-    ############
-    # Links to put along the top menu
-    "topmenu_links": [
-        # Url that gets reversed (Permissions can be added)
-        {"name": "Heri Homes", "url": "home", "permissions": ["auth.view_user"]},
-        # model admin to link to (Permissions checked against model)
-        {"model": "auth.User"},
-    ],
-    #############
-    # Side Menu #
-    #############
-    # Whether to display the side menu
-    "show_sidebar": True,
-    "hide_email": True,
-    # Whether to aut expand the menu
-    "navigation_expanded": True,
-    # Custom icons for side menu apps/models See https://fontawesome.com/icons?d=gallery&m=free&v=5.0.0,5.0.1,5.0.10,5.0.11,5.0.12,5.0.13,5.0.2,5.0.3,5.0.4,5.0.5,5.0.6,5.0.7,5.0.8,5.0.9,5.1.0,5.1.1,5.2.0,5.3.0,5.3.1,5.4.0,5.4.1,5.4.2,5.13.0,5.12.0,5.11.2,5.11.1,5.10.0,5.9.0,5.8.2,5.8.1,5.7.2,5.7.1,5.7.0,5.6.3,5.5.0,5.4.2
-    # for the full list of 5.13.0 free icon classes
-    "icons": {
-        "auth": "fas fa-users-cog",
-        "auth.user": "fas fa-user",
-        "base.User": "fas fa-user",
-        "auth.Group": "fas fa-users",
-        "admin.LogEntry": "fas fa-file",
-        "base.Property": "fas fa-building",
-        "base.TenantProfile": "fas fa-users",
-        "base.WaterPrice": "fas fa-coins",
-        "base.WaterMeterReading": "fas fa-faucet",
-        "base.MaintenanceRequest": "fas fa-toolbox",
-        "base.Notification": "fas fa-bell",
-        "base.Transaction": "fas fa-wallet",
-        "base.RentInvoice": "fas fa-file-invoice",
-    },
-    # # Icons that are used when one is not manually specified
-    "default_icon_parents": "fas fa-chevron-circle-right",
-    "default_icon_children": "fas fa-arrow-circle-right",
-    #################
-    # Related Modal #
-    #################
-    # Use modals instead of popups
-    "related_modal_active": False,
-    #############
-    # UI Tweaks #
-    #############
-    # Relative paths to custom CSS/JS scripts (must be present in static files)
-    # Uncomment this line once you create the bootstrap-dark.css file
-    "custom_css": "css/custom-admin.css",
-    "custom_js": None,
-    # Whether to show the UI customizer on the sidebar
-    "show_ui_builder": False,
-    ###############
-    # Change view #
-    ###############
-    "changeform_format": "horizontal_tabs",
-    # override change forms on a per modeladmin basis
-    "changeform_format_overrides": {
-        "auth.user": "collapsible",
-        "auth.group": "horizontal_tabs",
+UNFOLD = {
+    "SITE_HEADER": "Deans Mgmt",
+    "LOGIN": {
+        "SITE_HEADER": "Deans Mgmt",
     },
 }
-JAZZMIN_UI_TWEAKS = {
-    "navbar_small_text": False,
-    "footer_small_text": True,
-    "body_small_text": False,
-    "brand_small_text": False,
-    "brand_colour": "navbar-light",
-    "accent": "accent-teal",
-    "navbar": "navbar-white navbar-light",
-    "no_navbar_border": True,
-    "navbar_fixed": True,
-    "layout_boxed": False,
-    "footer_fixed": False,
-    "sidebar_fixed": True,
-    "sidebar": "sidebar-light-success",
-    "sidebar_nav_small_text": True,
-    "sidebar_disable_expand": False,
-    "sidebar_nav_child_indent": True,
-    "sidebar_nav_compact_style": True,
-    "sidebar_nav_legacy_style": False,
-    "sidebar_nav_flat_style": False,
-    "theme": "lumen",
-    "dark_mode_theme": None,
-    "button_classes": {
-        "primary": "btn-primary",
-        "secondary": "btn-secondary",
-        "info": "btn-info",
-        "warning": "btn-warning",
-        "danger": "btn-danger",
-        "success": "btn-success",
-    },
-    "actions_sticky_top": False,
-}
+
+
+# Callback Functions

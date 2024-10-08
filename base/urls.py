@@ -6,6 +6,7 @@ from base.views.users import *
 from base.views.transactions import *
 from base.views.tenants import *
 from base.views.landlord import *
+from base.views.admin_views import *
 
 router = routers.DefaultRouter()
 
@@ -38,7 +39,7 @@ urlpatterns = [
     path(
         "vacate-notices/", VacateNoticeCreateView.as_view(), name="vacate-notice-create"
     ),
-    path('initiate-payment/', index, name='initiate_payment'),
+    path("initiate-payment/", index, name="initiate_payment"),
     path("properties/", property_list_create, name="listed-properties"),
     path("maintenance-requests/", maintenance_request_view, name="maintenance-request"),
     path(
@@ -52,6 +53,22 @@ urlpatterns = [
         name="mark-notification-as-read",
     ),
     path("landlord/", landlord_dashboard, name="landlord-dashboard"),
-    
-    path('admin/properties/', AdminPropertyView.as_view(), name='admin-properties'),
+    path("admin/properties/", AdminPropertyView.as_view(), name="admin-properties"),
+    ##################
+    # Admin dashboard##
+    ##################
+    path("admin/estates/", EstateListView.as_view(), name="estate-list"),
+    path(
+        "admin/maintenance-requests/",
+        MaintenanceRequestListView.as_view(),
+        name="maintenance-requests",
+    ),
+    path(
+        "admin/meter-readings/",
+        MeterReadingListView.as_view(),
+        name="meter-readings",
+    ),
+    path("admin/tenants/", TenantProfileView.as_view(), name="tenant-list"),
+    path('admin/create-tenant/', create_tenant, name='tenant-create'),
+    path('admin/create-estate/',create_property , name='create-estate'),
 ]
