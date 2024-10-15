@@ -1,4 +1,4 @@
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import IsAdminUser, IsAuthenticated, AllowAny
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
@@ -14,10 +14,9 @@ from django.core.files.storage import default_storage
 
 
 class EstateListView(APIView):
-    permission_classes = [AllowAny]
+    permission_classes = [IsAdminUser]
 
     def get(self, request, *args, **kwargs):
-        # Group properties by estate
         # Group properties by estate
         estates = Property.objects.values_list("estate", flat=True).distinct()
         estate_groups = []
@@ -54,7 +53,7 @@ class EstateListView(APIView):
 
 
 class MaintenanceRequestListView(APIView):
-    permission_classes = [AllowAny]
+    permission_classes = [IsAdminUser]
 
     def get(self, request):
         maintenance_requests = MaintenanceRequest.objects.all()
@@ -63,7 +62,7 @@ class MaintenanceRequestListView(APIView):
 
 
 class MeterReadingListView(APIView):
-    permission_classes = [AllowAny]
+    permission_classes = [IsAdminUser]
 
     def get(self, request):
         meter_readings = WaterMeterReading.objects.all()
@@ -71,19 +70,51 @@ class MeterReadingListView(APIView):
         return Response(serializer.data)
 
 
+class VacateListView(APIView):
+    permission_classes = [IsAdminUser]
+
+    def get(self, request):
+        vacating = VacateNotice.objects.all()
+        serializer = VacateNoticeSerializer(vacating, many=True)
+        return Response(serializer.data)
+
+
+class RecentAdminActivitiesView(APIView):
+    permission_classes = [IsAdminUser]
+
+    def get(self, request, *args, **kwargs):
+        # Fetch the 10 most recent log entries (admin actions)
+        recent_activities = LogEntry.objects.select_related("user").order_by(
+            "-action_time"
+        )[:6]
+
+        # Serialize the log entries
+        serializer = AdminActivitySerializer(recent_activities, many=True)
+
+        return Response(serializer.data)
+
+
+@api_view(["POST"])
+@permission_classes([IsAdminUser])  # Allow any user to access (adjust if needed)
+def update_maintenance(request):
+    if request.method == "POST":
+        a = MaintenanceRequest.objects.filter(id=request.data["id"]).first()
+        a.status = request.data["action"]
+        a.save()
+        return Response(
+            {"error": "Updated successfully"},
+            status=status.HTTP_200_OK,
+        )
+
+
 class TenantProfileView(APIView):
-    permission_classes = [AllowAny]
+    permission_classes = [IsAdminUser]
 
     def get(self, request, *args, **kwargs):
         tenant_profiles = TenantProfile.objects.all()
         serializer = TenantProfileSerializer(tenant_profiles, many=True)
         return Response(serializer.data)
 
-
-# Function to generate a random password
-def generate_random_password(length=8):
-    characters = string.ascii_letters + string.digits
-    return "".join(random.choice(characters) for i in range(length))
 
 
 # Function to generate a random password
@@ -93,7 +124,7 @@ def generate_random_password(length=8):
 
 
 @api_view(["POST"])
-@permission_classes([AllowAny])  # Allow any user to access (adjust if needed)
+@permission_classes([IsAdminUser])  # Allow any user to access (adjust if needed)
 def create_tenant(request):
     data = request.data
 
@@ -104,15 +135,14 @@ def create_tenant(request):
 
     # Fetch the property using estate, block, and unit
     try:
-        property_obj = Property.objects.get(
+        property_obj = Property.objects.filter(
             estate=estate_name, block=block_name, unit=unit_name, available=True
-        )
+        ).first()
     except Property.DoesNotExist:
         return Response(
             {"error": "Property not found or not available"},
             status=status.HTTP_400_BAD_REQUEST,
         )
-
     # Check if user with the same email already exists
     try:
         user, created = User.objects.get_or_create(
@@ -149,7 +179,9 @@ def create_tenant(request):
     if data.get("pay_water_bill"):
         WaterMeterReading.objects.create(
             property=property_obj,
-            previous_reading=0,  # Assuming no previous reading, adjust if necessary
+            previous_reading=data[
+                "meter_reading"
+            ],  # Assuming no previous reading, adjust if necessary
             current_reading=data["meter_reading"],
         )
 
@@ -172,27 +204,98 @@ def create_tenant(request):
 
 import json
 
+#############################
+##Water Meter Reading View###
+#############################
+
+from decimal import Decimal, ROUND_DOWN
+
 
 @api_view(["POST"])
-@permission_classes([AllowAny])
+@permission_classes([IsAdminUser])
+def meter_reading_view(request):
+    if request.method == "POST":
+
+        try:
+            # Retrieve the data from the request
+            reading_data = request.data.get("reading")
+            new_reading = request.data.get("newReading")
+
+            try:
+                # Ensure the input is treated as a string and convert to Decimal
+                new_reading_decimal = Decimal(str(new_reading)).quantize(
+                    Decimal("0.00"), rounding=ROUND_DOWN
+                )
+                print(new_reading_decimal)
+            except ValueError as e:
+                return Response(
+                    {"error": f"Invalid reading value: {new_reading}. Error: {str(e)}"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            # Fetch the corresponding property based on estate, block, and unit
+            property_instance = Property.objects.get(
+                estate=request.data["reading[estate]"],
+                block=request.data["reading[block]"],
+                unit=request.data["reading[unit]"],
+            )
+
+            # Fetch the water meter reading instance for this property
+            water_meter_reading = WaterMeterReading.objects.filter(
+                property=property_instance
+            ).first()
+            print("here", property_instance)
+            if water_meter_reading:
+
+                # Update the current reading
+                water_meter_reading.current_reading = new_reading_decimal
+
+                # Call the save method which includes validation, previous reading update,
+                # and all other business logic (water bill calculation, invoice generation)
+                water_meter_reading.save()
+                return Response(
+                    {"message": "Meter reading updated successfully."},
+                    status=status.HTTP_201_CREATED,
+                )
+            else:
+                return Response(
+                    {"error": "No water meter reading found for this unit."},
+                    status=status.HTTP_404_NOT_FOUND,
+                )
+        except Property.DoesNotExist:
+            return Response(
+                {"error": "Property not found."}, status=status.HTTP_404_NOT_FOUND
+            )
+        except ValidationError as e:
+            return Response(
+                {"error": e.message_dict}, status=status.HTTP_400_BAD_REQUEST
+            )
+        except Exception as e:
+            return Response(
+                {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+
+@api_view(["POST"])
+@permission_classes([IsAdminUser])
 def create_property(request):
     if request.method == "POST":
-        # Parse the estateDetails from the request
         estate_details = json.loads(request.data.get("estateDetails"))
 
         estate_name = estate_details["estateName"]
         block_name = estate_details["blockName"]
         unit_name = estate_details["unitName"]
         rent_amount = estate_details["rentAmount"]
-        owner_name = estate_details.get("ownerName", None)  # May be empty
-        owner_email = estate_details.get("ownerEmail", None)  # May be empty
-        owner_phone = estate_details.get("ownerPhone", None)  # May be
+        owner_name = estate_details.get("ownerName", None)
+        owner_email = estate_details.get("ownerEmail", None)
+        owner_phone = estate_details.get("ownerPhone", None)
         allow_water_reading = estate_details["allowWaterReading"]
 
+        # Check if the unit already exists within the same estate and block
         check_property = Property.objects.filter(
-            block=block_name, unit=unit_name
+            estate=estate_name, block=block_name, unit=unit_name
         ).exists()
-        # Ensure uniqueness constraint: no duplicate unit in the same estate/block
+
         if check_property:
             return JsonResponse(
                 {
@@ -201,55 +304,56 @@ def create_property(request):
                 status=400,
             )
 
-        estate = Property.objects.filter(estate=estate_name).first()
-        if estate:
-            # Check if the estate exists
+        # Check if the estate exists
+        estate_exists = Property.objects.filter(estate=estate_name).exists()
 
-            # The estate exists, find its tenants (assuming tenants are related to the estate)
-
-            if estate.landlord:
-                unit = Property.objects.create(
-                    estate=estate,
-                    block=block_name,
-                    unit=unit_name,
-                    rent_price=rent_amount,
-                    water_meter_present=allow_water_reading,
-                    landlord=estate.landlord,  # Associate the unit with the tenant
-                )
-                return Response(
-                    {"message": "Unit allocated to existing tenant.", "unit": unit.id},
-                    status=status.HTTP_201_CREATED,
-                )
-            else:
-                return Response(
-                    {"message": "No tenants found for this estate."},
-                    status=status.HTTP_404_NOT_FOUND,
-                )
-
-        else:
-
-            # Check if user with the same email already exists
-            check_landlord = User.objects.filter(email=owner_email)
-            print(check_landlord)
-            if check_landlord.exists():
-                landlord = check_landlord.first()
-            else:
+        if estate_exists:
+            # Estate exists, handle multiple landlords
+            # Retrieve or create the landlord
+            landlord = User.objects.filter(email=owner_email).first()
+            if not landlord:
                 name_parts = owner_name.split()
                 first_name = name_parts[0]
                 last_name = " ".join(name_parts[1:]) if len(name_parts) > 1 else ""
                 landlord = User.objects.create(
                     email=owner_email,
-                    defaults={
-                        "first_name": first_name,
-                        "last_name": last_name,
-                        "email": owner_email,
-                        "phone": owner_phone,
-                        "password": generate_random_password(),  # Set a temporary password
-                        "user_type": "landlord",
-                    },
+                    first_name=first_name,
+                    last_name=last_name,
+                    phone=owner_phone,
+                    password=generate_random_password(),
+                    user_type="landlord",
                 )
 
-            # Create a new estate and the associated unit
+            # Create the unit in the existing estate, associating it with the landlord
+            unit = Property.objects.create(
+                estate=estate_name,
+                block=block_name,
+                unit=unit_name,
+                rent_price=rent_amount,
+                water_meter_present=allow_water_reading,
+                landlord=landlord,
+            )
+
+            return Response(
+                {"message": "New unit added to the estate.", "unit": unit.id},
+                status=status.HTTP_201_CREATED,
+            )
+
+        else:
+            # If the estate does not exist, create a new estate along with the unit
+            landlord = User.objects.filter(email=owner_email).first()
+            if not landlord:
+                name_parts = owner_name.split()
+                first_name = name_parts[0]
+                last_name = " ".join(name_parts[1:]) if len(name_parts) > 1 else ""
+                landlord = User.objects.create(
+                    email=owner_email,
+                    first_name=first_name,
+                    last_name=last_name,
+                    phone=owner_phone,
+                    password=generate_random_password(),
+                    user_type="landlord",
+                )
 
             unit = Property.objects.create(
                 estate=estate_name,
@@ -268,3 +372,39 @@ def create_property(request):
     return Response(
         {"message": "Invalid request method."}, status=status.HTTP_400_BAD_REQUEST
     )
+
+
+from django.shortcuts import get_object_or_404
+from rest_framework.parsers import JSONParser
+
+
+@api_view(["POST"])
+@permission_classes([IsAdminUser])
+def create_transaction(request):
+    if request.method == "POST":
+        email = request.data.get("email")
+        amount = request.data.get("amount")
+        transaction_id = request.data.get("transaction_id")
+
+        # Validate the required fields
+        if not email or not amount or not transaction_id:
+            return Response(
+                {
+                    "error": "All fields (email, amount, transaction_id, timestamp) are required."
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Get the user based on the email
+        user = get_object_or_404(User, email=email)
+
+        # Create the new transaction
+        transaction = Transaction.objects.create(
+            payee=user,
+            amount=amount,
+            transaction_id=transaction_id,
+        )
+
+        # Serialize the new transaction and return the response
+        serializer = TransactionSerializer(transaction)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)

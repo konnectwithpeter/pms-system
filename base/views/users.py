@@ -289,7 +289,7 @@ class RequestPasswordResetEmail(generics.GenericAPIView):
 
             redirect_url = request.data.get("redirect_url", "")
             reset_url = redirect_url + "uidb64=" + str(uidb64) + "/token=" + str(token)
-
+            
             html_message = render_to_string(
                 "base/user_reset_password.html", {"reset_url": reset_url}
             )

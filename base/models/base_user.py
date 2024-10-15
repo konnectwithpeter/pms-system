@@ -71,7 +71,6 @@ class User(AbstractBaseUser, PermissionsMixin):
         upload_to="profile_pics/", blank=True, null=True
     )
     user_type = models.CharField(max_length=10, choices=USER_TYPE_CHOICES)
-
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
 
@@ -82,57 +81,6 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     def __str__(self):
         return f"{self.first_name} {self.last_name}"
-
-
-class Transaction(models.Model):
-    payee = models.ForeignKey("User", null=True, on_delete=models.CASCADE)
-    phone_number = models.CharField(max_length=15, blank=True, null=True)
-    amount = models.DecimalField(max_digits=10, decimal_places=2, default=1)
-    transaction_id = models.CharField(max_length=100, null=True, blank=True)
-    timestamp = models.DateTimeField(auto_now_add=True)
-    receipt  = models.FileField(upload_to="receipts/", blank=True, null=True)
-
-    def __str__(self):
-        return f"Transaction {self.transaction_id}"
-
-
-@receiver(post_save, sender=Transaction)
-def process_payment(sender, instance, created, **kwargs):
-    # Check if the transaction is created and if it's successful
-    from django.db import transaction as db_transaction
-
-    if created and instance.transaction_status == "success":
-        print("provisioning transaction....")
-        try:
-            # Start a database transaction
-            with db_transaction.atomic():
-                invoice = instance.invoice
-                tenant_profile = TenantProfile.objects.get(user=invoice.recipient)
-
-                if instance.amount == invoice.total_amount:
-                    # Mark invoice as paid
-                    invoice.paid = True
-                    invoice.save()
-
-                    # Update tenant profile
-                    tenant_profile.arrears = 0
-                    tenant_profile.total_paid += instance.amount
-                    tenant_profile.update_rent_status()  # Update status
-                elif instance.amount < invoice.total_amount:
-                    # Partial payment
-                    tenant_profile.arrears = invoice.total_amount - (
-                        tenant_profile.total_paid + instance.amount
-                    )
-                    tenant_profile.total_paid += instance.amount
-                    tenant_profile.update_rent_status()  # Update status
-
-                tenant_profile.save()  # Save tenant profile
-        except TenantProfile.DoesNotExist:
-            print(
-                f"Tenant profile not found for invoice recipient: {invoice.recipient}"
-            )
-        except Exception as e:
-            print(f"An error occurred while processing payment: {e}")
 
 
 class Notification(models.Model):

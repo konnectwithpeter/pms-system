@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Service Fee Invoice</title>
+</head>
+<body>
+    <p>Dear {{ invoice.landlord.user.first_name }},</p>
+    <p>Please find attached the service fee invoice for your properties.</p>
+    <p>Invoice Total: KES {{ invoice.amount }}</p>
+    <p>Due Date: {{ invoice.due_date }}</p>
+    <br>
+    <p>Thank you,</p>
+    <p>Deans MGMT</p>
+</body>
+</html>

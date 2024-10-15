@@ -6,8 +6,11 @@ from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.core.files.base import ContentFile
 from django.core.exceptions import ValidationError
+from django.db.models import Sum
+
 
 from .tenant_models import TenantProfile
+from .landlord_models import LandlordProfile
 
 
 class WaterPrice(models.Model):
@@ -39,7 +42,6 @@ class Property(models.Model):
     rent_price = models.DecimalField(max_digits=10, decimal_places=2)
     available = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
-    
 
     def __str__(self):
         return f"{self.unit}  {self.block} {self.estate}"
@@ -47,13 +49,20 @@ class Property(models.Model):
     class Meta:
         verbose_name = "Property"
         verbose_name_plural = "Properties"
-
+        
+        
+# Signal to add property to the landlord's profile
+@receiver(post_save, sender=Property)
+def add_property_to_landlord_profile(sender, instance, created, **kwargs):
+    if created:
+        landlord_profile, _ = LandlordProfile.objects.get_or_create(user=instance.landlord)
+        landlord_profile.properties.add(instance)
 
 class WaterMeterReading(models.Model):
     property = models.ForeignKey("Property", on_delete=models.CASCADE)
     previous_reading = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     current_reading = models.DecimalField(max_digits=10, decimal_places=2, default=0)
-    reading_date = models.DateField(auto_now_add=True)
+    reading_date = models.DateField(auto_now=True)
 
     def units_used(self):
         return max(0, self.current_reading - self.previous_reading)
@@ -96,27 +105,21 @@ class WaterMeterReading(models.Model):
 
         # Update the corresponding TenantProfile if needed
         if self.current_reading >= self.previous_reading:
+            # Only generate water bill invoice
             bill_amount = self.water_bill()
+
             tenant_profile = TenantProfile.objects.filter(
                 property=self.property
             ).first()
             if tenant_profile:
-                tenant_profile.water_bill = bill_amount
-                tenant_profile.pending_bill = (
-                    bill_amount
-                    + tenant_profile.property.rent_price
-                    + tenant_profile.arrears
-                )
-                tenant_profile.total_billed = (
-                    tenant_profile.total_billed
-                    + bill_amount
-                    + tenant_profile.property.rent_price
-                )
-                tenant_profile.save()
-                from base.tasks import generate_invoice
 
-                # generate an invoice for the tenant
-                generate_invoice.delay(
+                # Update the tenant's water bill
+                tenant_profile.water_bill = bill_amount
+
+                from base.tasks import generate_utility_invoice
+
+                # Generate the water bill invoice (without rent invoice)
+                generate_utility_invoice(
                     tenant_profile.id,
                     self.previous_reading,
                     self.current_reading,
@@ -140,7 +143,6 @@ class MaintenanceRequest(models.Model):
         ("Completed", "Completed"),
         ("Cancelled", "Cancelled"),
     ]
-
     PRIORITY_CHOICES = [
         ("Low", "Low"),
         ("Medium", "Medium"),
@@ -169,9 +171,7 @@ class MaintenanceRequest(models.Model):
 
 
 class VacateNotice(models.Model):
-    tenant = models.ForeignKey(
-        "User", on_delete=models.CASCADE, limit_choices_to={"user_type": "tenant"}
-    )
+    tenant = models.ForeignKey("TenantProfile", on_delete=models.CASCADE)
     notice_date = models.DateField(auto_now_add=True)
     vacate_date = models.DateField()
     reason = models.TextField(null=True, blank=True)

@@ -175,7 +175,7 @@ class VacateNoticeSerializer(serializers.ModelSerializer):
         return data
 
 
-class MaintenanceRequestSerializer(serializers.ModelSerializer):
+class MaintenanceSerializer(serializers.ModelSerializer):
     class Meta:
         model = MaintenanceRequest
         fields = [
@@ -197,7 +197,7 @@ class PropertyAdminSerializer(serializers.ModelSerializer):
     landlord = serializers.SerializerMethodField()
     tenants = TenantProfileSerializer(many=True, read_only=True)
     invoices = RentInvoiceSerializer(many=True, read_only=True)
-    maintenances = MaintenanceRequestSerializer(many=True, read_only=True)
+    maintenances = MaintenanceSerializer(many=True, read_only=True)
 
     class Meta:
         model = Property

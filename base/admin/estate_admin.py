@@ -14,6 +14,9 @@ class WaterPriceAdmin(ModelAdmin):
 
 admin.site.register(WaterPrice, WaterPriceAdmin)
 
+admin.site.register(LandlordProfile)
+admin.site.register(ServiceFeeInvoice)
+
 
 @admin.register(WaterMeterReading)
 class WaterMeterReadingAdmin(ModelAdmin):
@@ -66,7 +69,7 @@ class PropertyAdmin(ModelAdmin):
         "landlord",
     )
 
-    readonly_fields = ("created_at",  "view_image")
+    readonly_fields = ("created_at", "view_image")
 
     fieldsets = (
         (
@@ -85,15 +88,9 @@ class PropertyAdmin(ModelAdmin):
                 )
             },
         ),
-       
         (
             "Timestamps",
-            {
-                "fields": (
-                    "created_at",
-                   
-                )
-            },
+            {"fields": ("created_at",)},
         ),
     )
 

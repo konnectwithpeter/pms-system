@@ -92,7 +92,6 @@ def generate_invoice(tenant_id, previous_reading, current_reading, reading_date)
         # Create the invoice record
         invoice = RentInvoice.objects.create(
             recipient=tenant.user,
-            monthly_rent=tenant.property.rent_price,
             previous_water_reading=previous_reading,
             current_water_reading=current_reading,
             reading_date=reading_date,
@@ -193,6 +192,3 @@ def send_invoice_email(tenant_id, filename, pdf_data):
         print(f"Failed to send email to {tenant.user.email}. Error: {e}")
 
 
-@shared_task
-def send_reminders():
-    pass

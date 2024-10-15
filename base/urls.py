@@ -7,7 +7,7 @@ from base.views.transactions import *
 from base.views.tenants import *
 from base.views.landlord import *
 from base.views.admin_views import *
-
+from base.views.admin_landlord_views import *
 router = routers.DefaultRouter()
 
 
@@ -64,11 +64,31 @@ urlpatterns = [
         name="maintenance-requests",
     ),
     path(
+        "admin/update-maintenance/",
+        update_maintenance,
+        name="maintenance-requests",
+    ),
+    path(
         "admin/meter-readings/",
         MeterReadingListView.as_view(),
         name="meter-readings",
     ),
+    path(
+        "admin/vacate-notice/",
+        VacateListView.as_view(),
+        name="meter-readings",
+    ),
     path("admin/tenants/", TenantProfileView.as_view(), name="tenant-list"),
-    path('admin/create-tenant/', create_tenant, name='tenant-create'),
-    path('admin/create-estate/',create_property , name='create-estate'),
+     path('admin/landlord/', LandlordProfileView.as_view(), name='landlord-profile'),
+    path("admin/create-tenant/", create_tenant, name="tenant-create"),
+    path("admin/create-transaction/", create_transaction, name="transaction-create"),
+    path("admin/create-estate/", create_property, name="create-estate"),
+    path("admin/update-reading/", meter_reading_view, name="create-estate"),
+    path(
+        "admin/recent-admin-activities/",
+        RecentAdminActivitiesView.as_view(),
+        name="recent-admin-activities",
+        
+    ),
+    path('admin/create-invoice/', create_special_invoice, name='create-invoice'),
 ]

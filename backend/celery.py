@@ -1,26 +1,28 @@
 from celery import Celery
 from celery.schedules import crontab
+import os
 
-#app = Celery("backend", broker="amqp://guest:guest@147.79.102.115:5672//")
-app = Celery("backend", broker="amqp://guest:guest@rabbitmq//")
+app = Celery("backend", broker="amqp://guest:guest@147.79.102.115:5672//")
+# Set the default Django settings module for the 'celery' program.
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "backend.settings")
 
-app.conf.result_backend = "rpc://"
+#app = Celery("backend")
 
+# Load task modules from all registered Django app configs.
 app.config_from_object("django.conf:settings", namespace="CELERY")
 app.autodiscover_tasks()
 
 
+@app.task
+def print_numbers():
+    from base.tasks import print_numbers
+    print_numbers()
+
+
 @app.on_after_configure.connect
 def setup_periodic_tasks(sender, **kwargs):
-    from base.tasks import (
-        send_reminders
-    )  # Move here
-
-    # sender.add_periodic_task(30.0, test.s('world'), name='test every 30 seconds')crontab(hour=0, minute=0, day_of_month='1')
-
-    # sender.add_periodic_task(
-    #     60.0, generate_monthly_bills.s(), name="generate monthly bills on 1st"
-    # )
-    # sender.reset_water_bills(
-    #     60.0, generate_monthly_bills.s(), name="reset water meter on 1st"
-    # )
+    sender.add_periodic_task(
+        crontab(minute="*"),  # Run every minute
+        print_numbers.s(),  # Task to execute
+        name="print numbers every minute",
+    )

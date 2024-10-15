@@ -59,13 +59,10 @@ class TenantInfoView(APIView):
         tenant_profile_serializer = TenantProfileSerializer(tenant_profile)
 
         # Get related invoices
-        invoices = RentInvoice.objects.filter(recipient=request.user)
-        invoice_serializer = RentInvoiceSerializer(invoices, many=True)
+        invoices = WaterBillInvoice.objects.all()
+        invoice_serializer = WaterBillInvoiceSerializer(invoices, many=True)
 
-        # Get notifications for the tenant
-        notifications = Notification.objects.filter(recipient=request.user)
-        notification_serializer = NotificationSerializer(notifications, many=True)
-
+       
         # Get maintenance requests
         maintenance_requests = MaintenanceRequest.objects.filter(tenant=request.user)
         maintenance_serializer = MaintenanceRequestSerializer(
@@ -76,7 +73,6 @@ class TenantInfoView(APIView):
         data = {
             "tenant_profile": tenant_profile_serializer.data,
             "invoices": invoice_serializer.data,
-            "notifications": notification_serializer.data,
             "maintenance_requests": maintenance_serializer.data,
         }
 
@@ -114,6 +110,8 @@ class VacateNoticeCreateView(APIView):
 
 
 # List and create maintenance requests
+
+
 @api_view(["GET", "POST", "PATCH"])
 def maintenance_request_view(request):
     if request.method == "GET":
@@ -124,10 +122,12 @@ def maintenance_request_view(request):
         return Response(serializer.data)
 
     if request.method == "POST":
+        
+
         # Handle new maintenance request creation
         data = request.data
         tenant = request.user
-        property_id = data.get("property_id")
+        property_id = data.get("property_id")[0] if isinstance(data.get("property_id"), list) else data.get("property_id")
 
         # Ensure property belongs to the tenant
         try:
@@ -136,14 +136,15 @@ def maintenance_request_view(request):
             return Response(
                 {"error": "Property not found"}, status=status.HTTP_404_NOT_FOUND
             )
+        
 
         # Prepare the maintenance request data
         request_data = {
-            "type": data.get("maintenance_type"),
-            "description": data.get("description"),
-            "severity": data.get("severity"),
+            "type": data.get("maintenance_type")[0] if isinstance(data.get("maintenance_type"), list) else data.get("maintenance_type"),
+            "description": data.get("description")[0] if isinstance(data.get("description"), list) else data.get("description"),
+            "severity": data.get("severity")[0] if isinstance(data.get("severity"), list) else data.get("severity"),
         }
-
+        
         # Include images if they were uploaded
         if "image_0" in request.FILES:
             request_data["image1"] = request.FILES["image_0"]
@@ -153,13 +154,12 @@ def maintenance_request_view(request):
 
         if "image_2" in request.FILES:
             request_data["image3"] = request.FILES["image_2"]
-
+        
         # Optional video field
         if "video" in request.FILES:
             request_data["video"] = request.FILES["video"]
-
         # Serialize the data and create the maintenance request
-        serializer = MaintenanceRequestSerializer(data=request_data)
+        serializer = MaintenanceSerializer(data=request_data)
         if serializer.is_valid():
             # Save the instance with tenant and property
             serializer.save(tenant=tenant, property=property)

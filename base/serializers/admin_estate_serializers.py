@@ -1,7 +1,9 @@
 from rest_framework import serializers
 from base.models import *
 from .serializers import UserSerializer, PropertySerializer
-
+from django.contrib.admin.models import LogEntry
+from django.utils.html import strip_tags
+from django.contrib.contenttypes.models import ContentType
 
 class UnitSerializer(serializers.Serializer):
     name = serializers.CharField(source="unit")
@@ -180,5 +182,32 @@ class TenantProfileSerializer(serializers.ModelSerializer):
         return WaterMeterReadingSerializer(latest_reading).data
 
 
+class VacateNoticeSerializer(serializers.ModelSerializer):
+    tenant = TenantProfileSerializer()
+    class Meta:
+        model = VacateNotice
+        fields = "__all__"
 
 
+
+class AdminActivitySerializer(serializers.ModelSerializer):
+    action_description = serializers.SerializerMethodField()
+
+    class Meta:
+        model = LogEntry
+        fields = ['action_description', 'action_time']
+
+    def get_action_description(self, obj):
+        # Define action_flag mappings
+        action_dict = {
+            1: "added",
+            2: "changed",
+            3: "deleted"
+        }
+
+        # Get the user action in human-readable format
+        action = action_dict.get(obj.action_flag, "performed an action on")
+        content_type = ContentType.objects.get_for_id(obj.content_type_id).name
+        object_repr = strip_tags(obj.object_repr)
+
+        return f"{obj.user.first_name} {action} {content_type} '{object_repr}' on {obj.action_time.strftime('%Y-%m-%d %H:%M:%S')}"
