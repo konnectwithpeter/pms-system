@@ -10,12 +10,10 @@ from io import BytesIO
 from django.http import HttpResponse
 from django.template.loader import get_template
 from xhtml2pdf import pisa
-from base.models import (
-    TenantProfile,
-    Notification,
-    WaterMeterReading,
-    RentInvoice,
-    WaterPrice,
+from management.models import (
+    Tenant,
+    UserInvoice,
+    WaterUnitPrice,
 )
 from django.core.files.base import ContentFile
 from datetime import datetime
@@ -77,8 +75,8 @@ def generate_invoice(tenant_id, previous_reading, current_reading, reading_date)
     print("Generating invoice...")
 
     try:
-        tenant = TenantProfile.objects.get(id=tenant_id)
-        water_price = WaterPrice.objects.filter()[0].price_per_unit
+        tenant = Tenant.objects.get(id=tenant_id)
+        water_price = WaterUnitPrice.objects.filter()[0].price_per_unit
 
         # Get today's date
         today = timezone.now().date()
@@ -90,7 +88,7 @@ def generate_invoice(tenant_id, previous_reading, current_reading, reading_date)
         water_bill = consumption * water_price
 
         # Create the invoice record
-        invoice = RentInvoice.objects.create(
+        invoice = UserInvoice.objects.create(
             recipient=tenant.user,
             previous_water_reading=previous_reading,
             current_water_reading=current_reading,
@@ -107,19 +105,19 @@ def generate_invoice(tenant_id, previous_reading, current_reading, reading_date)
 
         generate_invoice_pdf(tenant, invoice)
 
-        notification = Notification.objects.create(
-            recipient=tenant.user,
-            title="Monthly Rent and Utility Invoice",
-            message=f"Reminder: Your monthly rent of KES {tenant.pending_bill} and water bill of KES {water_bill} are due by {billing_period_end}. Please make the payment to avoid late fees. Thank you!",
-            notification_type="Info",
-            # Using the custom User model for sender and recipient
-            sender=User.objects.filter(user_type="admin")[0],
-        )
+        # notification = Notification.objects.create(
+        #     recipient=tenant.user,
+        #     title="Monthly Rent and Utility Invoice",
+        #     message=f"Reminder: Your monthly rent of KES {tenant.pending_bill} and water bill of KES {water_bill} are due by {billing_period_end}. Please make the payment to avoid late fees. Thank you!",
+        #     notification_type="Info",
+        #     # Using the custom User model for sender and recipient
+        #     sender=User.objects.filter(user_type="admin")[0],
+        # )
 
-        notification.save()
+        # notification.save()
 
-    except TenantProfile.DoesNotExist:
-        print(f"TenantProfile with id {tenant_id} does not exist.")
+    except Tenant.DoesNotExist:
+        print(f"Tenant with id {tenant_id} does not exist.")
 
 
 def generate_invoice_pdf(tenant, invoice):
@@ -169,7 +167,7 @@ def generate_invoice_pdf(tenant, invoice):
 
 @shared_task
 def send_invoice_email(tenant_id, filename, pdf_data):
-    tenant = TenantProfile.objects.get(id=tenant_id)  # Retrieve tenant instance
+    tenant = Tenant.objects.get(id=tenant_id)  # Retrieve tenant instance
 
     subject = "Your Monthly Rent Invoice"
     message = (
@@ -190,5 +188,3 @@ def send_invoice_email(tenant_id, filename, pdf_data):
         print(f"Email sent to {tenant.user.email} successfully.")
     except Exception as e:
         print(f"Failed to send email to {tenant.user.email}. Error: {e}")
-
-

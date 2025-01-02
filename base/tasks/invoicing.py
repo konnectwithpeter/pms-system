@@ -1,4 +1,4 @@
-from base.models import *
+from management.models import *
 from celery import shared_task
 from django.utils import timezone
 
@@ -22,8 +22,8 @@ def generate_utility_invoice(
     print("Generating invoice...")
 
     try:
-        tenant = TenantProfile.objects.get(id=tenant_id)
-        water_price = WaterPrice.objects.filter()[0].price_per_unit
+        tenant = Tenant.objects.get(id=tenant_id)
+        water_price = WaterUnitPrice.objects.filter()[0].price_per_unit
 
         # Get today's date
         today = timezone.now().date()
@@ -35,7 +35,7 @@ def generate_utility_invoice(
         water_bill = consumption * water_price
 
         # Create the invoice record
-        invoice = WaterBillInvoice.objects.create(
+        invoice = TenantInvoice.objects.create(
             tenant=tenant,
             property=tenant.property,
             previous_water_reading=previous_reading,
@@ -49,7 +49,7 @@ def generate_utility_invoice(
 
         invoice.save()
 
-        total_invoices = WaterBillInvoice.objects.filter(tenant=tenant).aggregate(
+        total_invoices = TenantInvoice.objects.filter(tenant=tenant).aggregate(
             total=Sum("amount")
         )["total"]
        
@@ -58,8 +58,8 @@ def generate_utility_invoice(
 
         generate_invoice_pdf(tenant, invoice)
 
-    except TenantProfile.DoesNotExist:
-        print(f"TenantProfile with id {tenant_id} does not exist.")
+    except Tenant.DoesNotExist:
+        print(f"Tenant with id {tenant_id} does not exist.")
 
 
 def generate_invoice_pdf(tenant, invoice):
@@ -108,7 +108,7 @@ def generate_invoice_pdf(tenant, invoice):
 
 @shared_task
 def send_invoice_email(tenant_id, filename, pdf_data):
-    tenant = TenantProfile.objects.get(id=tenant_id)  # Retrieve tenant instance
+    tenant = Tenant.objects.get(id=tenant_id)  # Retrieve tenant instance
 
     subject = "Your Monthly Water Bill Invoice"
     message = (

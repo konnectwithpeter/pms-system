@@ -9,6 +9,8 @@ urlpatterns = (
     [
         path("admin/", admin.site.urls),
         path("api/", include("base.urls")),
+        path("api/admin/", include("management.urls")),
+        path('api/support/', include('support.urls')),
         path("index.html", TemplateView.as_view(template_name="index.html")),
         re_path(
             r"^(?!(api|admin|static|media|manifest.json|service-worker.js|service-worker.js.map).*$)",

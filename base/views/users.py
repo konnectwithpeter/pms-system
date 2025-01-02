@@ -39,71 +39,11 @@ from django.views.decorators.csrf import csrf_exempt
 from rest_framework.views import APIView
 
 
-from base.models import *
+from management.models import *
 from base.serializers import *
+from base.models import *
 
 EMAIL_HOST_USER = "Rowg Dev <info@rowg.co.ke>"
-
-
-@api_view(["GET", "POST"])
-@parser_classes([MultiPartParser, FormParser])  # To handle file uploads
-def property_list_create(request):
-    if request.method == "GET":
-        # Return a list of all properties
-        properties = Property.objects.all()
-        serializer = PropertySerializer(properties, many=True)
-        return Response(serializer.data)
-
-    if request.method == "POST":
-        # Ensure that the user is authenticated and is a landlord
-        if not request.user.is_authenticated or request.user.user_type != "landlord":
-            return Response(
-                {"error": "Only landlords can create properties"},
-                status=status.HTTP_403_FORBIDDEN,
-            )
-
-        # Use request.data directly, no need to copy
-        property_data = {
-            "title": request.data.get("title"),
-            "rent_price": request.data.get("rent_amount"),
-            "address": request.data.get("location"),
-            "description": request.data.get("description"),
-            "bedrooms": request.data.get("bedrooms"),
-            "bathrooms": request.data.get("bathrooms"),
-            "parking": request.data.get("parking"),
-        }
-
-        image_fields = ["image1", "image2", "image3"]
-        for idx, field_name in enumerate(image_fields):
-            image_key = f"image_{idx + 1}"
-            if image_key in request.FILES:
-                uploaded_file = request.FILES[image_key]
-
-                # Ensure proper handling of temporary files
-                if isinstance(uploaded_file, TemporaryUploadedFile):
-                    uploaded_file.seek(0)
-                elif isinstance(uploaded_file, InMemoryUploadedFile):
-                    uploaded_file.open()
-
-                property_data[field_name] = uploaded_file
-
-        # Create a property instance with the landlord manually set
-        serializer = PropertySerializer(data=property_data)
-
-        if serializer.is_valid():
-            # Save the property instance without committing it to the database yet
-            property_instance = serializer.save(landlord=request.user)
-
-            # Handle additional files (optional)
-            if "files[]" in request.FILES:
-                files = request.FILES.getlist("files[]")
-                for file in files:
-                    pass
-                    # PropertyFile.objects.create(property=property_instance, file=file)
-
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        else:
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 # View to update request status
@@ -126,83 +66,6 @@ def update_maintenance_status(request, pk):
 
     return Response(
         {"message": "Status updated successfully"}, status=status.HTTP_200_OK
-    )
-
-
-class NotificationViewSet(viewsets.ModelViewSet):
-    queryset = Notification.objects.all()
-    serializer_class = NotificationSerializer
-    permission_classes = [IsAuthenticated]
-
-    def get_queryset(self):
-        # Filter notifications for the authenticated user (recipient)
-        return Notification.objects.filter(recipient=self.request.user)
-
-    # Allow landlord and admin users to create/send notifications
-    def create(self, request, *args, **kwargs):
-        # Ensure only landlords or admins can send notifications
-        if request.user.user_type not in ["landlord", "admin"]:
-            return Response(
-                {"detail": "You do not have permission to send notifications."},
-                status=status.HTTP_403_FORBIDDEN,
-            )
-
-        # The sender is the logged-in user
-        sender = request.user
-
-        # Extract the data to create the notification
-        title = request.data.get("title")
-        message = request.data.get("message")
-        notification_type = request.data.get(
-            "notification_type", "Info"
-        )  # Default to Info if not provided
-        recipient_id = request.data.get(
-            "recipient"
-        )  # Expect recipient's user ID from frontend
-
-        try:
-            recipient = User.objects.get(id=recipient_id)  # Ensure recipient exists
-        except User.DoesNotExist:
-            return Response(
-                {"detail": "Recipient not found."}, status=status.HTTP_404_NOT_FOUND
-            )
-
-        # Create the notification
-        notification = Notification.objects.create(
-            title=title,
-            message=message,
-            notification_type=notification_type,
-            sender=sender,
-            recipient=recipient,
-        )
-
-        serializer = self.get_serializer(notification)
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
-
-
-@api_view(["PATCH"])
-@permission_classes([IsAuthenticated])
-def mark_notification_as_read(request):
-    notification_id = request.data["notification"]
-    try:
-        # Ensure the notification exists and belongs to the current user
-        notification = Notification.objects.get(
-            id=notification_id, recipient=request.user
-        )
-    except Notification.DoesNotExist:
-        return Response(
-            {"detail": "Notification not found."}, status=status.HTTP_404_NOT_FOUND
-        )
-
-    # Mark the notification as read (assuming you have a 'status' or 'read' field)
-    notification.read = (
-        True  # or `notification.read = True` if you have a boolean field
-    )
-
-    notification.save()
-
-    return Response(
-        {"detail": "Notification marked as read."}, status=status.HTTP_200_OK
     )
 
 

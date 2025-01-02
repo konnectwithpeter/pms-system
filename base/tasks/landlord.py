@@ -4,7 +4,6 @@ from django.utils.timezone import now
 from datetime import timedelta
 from io import BytesIO
 from reportlab.pdfgen import canvas
-from base.models import LandlordProfile, ServiceFeeInvoice
 from celery import shared_task
 import time
 

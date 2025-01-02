@@ -11,57 +11,44 @@ from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.core.files.base import ContentFile
 from django.core.exceptions import ValidationError
+from management.models import Unit
+from management.models import User
 
-
-class TenantProfile(models.Model):
-    user = models.OneToOneField(
-        "User", on_delete=models.CASCADE, limit_choices_to={"user_type": "tenant"}
-    )  # Link to tenant user
-    property = models.ForeignKey(
-        "Property",
-        on_delete=models.SET_NULL,
-        null=True,
-        related_name="tenants",
-        limit_choices_to={"available": True},
+class MaintenanceRequest(models.Model):
+    TYPE_CHOICES = [
+        ("Plumbing", "Plumbing"),
+        ("Electrical", "Electrical"),
+        ("Structural", "Structural"),
+        ("Other", "Other"),
+    ]
+    STATUS_CHOICES = [
+        ("Pending", "Pending"),
+        ("In Progress", "In Progress"),
+        ("Completed", "Completed"),
+        ("Cancelled", "Cancelled"),
+    ]
+    PRIORITY_CHOICES = [
+        ("Low", "Low"),
+        ("Medium", "Medium"),
+        ("High", "High"),
+    ]
+    tenant = models.ForeignKey(
+        User, on_delete=models.CASCADE, limit_choices_to={"user_type": "tenant"}, null=True, blank=True
     )
-
-    # Tenant-specific details
-    move_in_date = models.DateField(auto_now_add=True)  # Track when the tenant moved in
-    move_out_date = models.DateField(null=True, blank=True)  # If tenant has moved out
-
-    # Payment-related fields
-    water_bill = models.DecimalField(max_digits=10, decimal_places=2, default=0)
-    arrears = models.DecimalField(max_digits=10, decimal_places=2, default=0)
-    pending_bill = models.DecimalField(max_digits=10, decimal_places=2, default=0)
-    total_billed = models.DecimalField(
-        max_digits=10, decimal_places=2, null=True, default=0
-    )  # New field for total billed
-    total_paid = models.DecimalField(max_digits=10, decimal_places=2, default=0)
-    last_payment_date = models.DateField(null=True, blank=True)
+    unit = models.ForeignKey(Unit, on_delete=models.CASCADE)
+    category = models.CharField(max_length=50, choices=TYPE_CHOICES, default="Other")
+    description = models.TextField()
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="Pending")
+    severity = models.CharField(
+        max_length=20, choices=PRIORITY_CHOICES, default="Medium"
+    )
+    submitted_at = models.DateTimeField(auto_now_add=True)
+    completed_at = models.DateTimeField(blank=True, null=True)
+    image1 = models.ImageField(upload_to="maintenance-requests/", null=True, blank=True)
+    image2 = models.ImageField(upload_to="maintenance-requests/", null=True, blank=True)
+    image3 = models.ImageField(upload_to="maintenance-requests/", null=True, blank=True)
+    video = models.FileField(upload_to="maintenance-requests/", null=True, blank=True)
+    budget = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
 
     def __str__(self):
-        return f"Tenant Profile: {self.user.first_name} - {self.property.unit}"
-
-    def clean(self):
-        # Ensure that the user is a tenant and does not already have a tenant profile
-        if self.user.user_type != "tenant":
-            raise ValidationError("User must be of type 'tenant'.")
-
-    def update_pending_bill(self):
-        """Update the pending bill based on total billed and total paid."""
-        print(self.total_billed, self.total_paid)
-        self.pending_bill = self.total_billed - self.total_paid
-
-    def save(self, *args, **kwargs):
-        self.clean()  # Call the clean method to validate
-        # Calculate pending bill and update rent status
-        self.update_pending_bill()
-
-        # Call the original save method
-        super().save(*args, **kwargs)
-
-        # Set the property as unavailable if linked
-        if self.property:
-            self.property.available = False
-            self.property.save()  # Save the updated property
-
+        return f"Request by {self.tenant.first_name} - {self.unit}"
